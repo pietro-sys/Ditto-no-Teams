@@ -1,107 +1,68 @@
-# Ditto no Teams — Kawarimi no Jutsu 🥷💨🟣
+Ditto on Teams — Kawarimi no Jutsu 🥷💨🟣
+Press F9 during a meeting: a cloud of ninja smoke covers your camera and, when it clears, a wobbling Ditto is sitting where you were. Press F9 again to come back.
 
-Aperte **F9** durante a reunião: uma nuvem de fumaça ninja cobre a câmera e, quando ela some, no seu lugar aparece um **Ditto** balançando. Aperte **F9** de novo e você volta.
+You don't need a background photo (fundo.jpg). The background is captured live, at the moment you trigger the effect, so it works anywhere.
 
-Você **não precisa de foto de fundo** (`fundo.jpg`). O cenário é capturado **ao vivo, na hora do disparo**, então funciona em qualquer lugar.
+1. Installation (one time)
+Requirements: Python 3.10+ and OBS Studio 28+ (which ships with obs-websocket v5). You don't need to install ffmpeg: the imageio-ffmpeg package bundles one.
 
----
-
-## 1. Instalação (uma vez)
-
-Pré-requisitos: **Python 3.10+** e **OBS Studio 28+** (já vem com o obs-websocket v5).
-Não precisa instalar o ffmpeg: o pacote `imageio-ffmpeg` já traz um.
-
-```powershell
 py -m venv .venv
-```
-```powershell
 .\.venv\Scripts\Activate.ps1
-```
-```powershell
 pip install -r requirements.txt
-```
+2. Put the files in the folder
+File	Required?	Notes
+ditto.png / ditto.gif / ditto.webp	yes	It can have a white or flat background: it's cut out automatically. Animated GIFs keep their animation.
+fumaca.mp4 / fumaca.gif / fumaca.webm	no	Smoke on a black or green background is keyed out automatically. Without this file, smoke is generated for you.
+On the first run, the assets are generated automatically in saida/. To generate or tweak them by hand:
 
-## 2. Coloque os arquivos na pasta
-
-| Arquivo | Obrigatório? | Observação |
-|---|---|---|
-| `ditto.png` / `ditto.gif` / `ditto.webp` | **sim** | Pode ter fundo branco/liso: ele é recortado automaticamente. Se for GIF animado, a animação é mantida. |
-| `fumaca.mp4` / `fumaca.gif` / `fumaca.webm` | não | Fumaça sobre fundo **preto** ou **verde** é recortada sozinha. Sem esse arquivo, uma fumaça é gerada. |
-
-Na primeira execução os assets são gerados automaticamente em `saida/`. Para gerar ou ajustar à mão:
-
-```powershell
 python preparar_ditto.py
-```
+This produces:
 
-Isso gera:
-- `ditto_overlay.webm`: Ditto com **canal alfa**, com respiração e balanço em loop (modo **a**). Use `--mov` para gerar também uma versão ProRes 4444.
-- `fumaca_alpha.webm`: a fumaça com alfa.
-- `ditto_solido.mp4`: só com `--bg-cor "#1e1e2e"`. É um teste rápido sobre cor sólida (modo **c**).
-- `ditto_preview.png`: um quadro para conferir o recorte.
+ditto_overlay.webm: Ditto with an alpha channel, breathing and swaying in a loop (mode a). Use --mov to also get a ProRes 4444 version.
+fumaca_alpha.webm: the smoke with alpha.
+ditto_solido.mp4: only with --bg-cor "#1e1e2e". A quick test over a solid colour (mode c).
+ditto_preview.png: a single frame to check the cutout.
+Useful tweaks: --escala 0.7 (bigger Ditto), --pos-x 0.4, --respiracao 0.06, --balanco 3, --resolucao 1920x1080, --remover-fundo nao, --tolerancia 25.
 
-Ajustes úteis: `--escala 0.7` (Ditto maior), `--pos-x 0.4`, `--respiracao 0.06`, `--balanco 3`, `--resolucao 1920x1080`, `--remover-fundo nao`, `--tolerancia 25`.
-
-## 3. Teste sem OBS (opcional)
-
-```powershell
+3. Test without OBS (optional)
 python ditto_kawarimi.py --preview
-```
-Abre uma janela com a webcam. **Espaço/F9** alterna, **C/F8** memoriza o cenário limpo, **M/F10** troca o modo e **Q** sai.
-Sem câmera: `python ditto_kawarimi.py --preview --sem-camera --bg-cor "#1e1e2e"`.
+Opens a window with your webcam. Space/F9 toggles, C/F8 saves the clean background, M/F10 changes the mode and Q quits. Without a camera: python ditto_kawarimi.py --preview --sem-camera --bg-cor "#1e1e2e".
 
-## 4. OBS
+4. OBS
+Open OBS and go to Tools → WebSocket Server Settings. Check Enable WebSocket server (port 4455) and copy the password.
+Run the setup. It creates any missing scenes and sources, then keeps listening for F9:
+python ditto_kawarimi.py --setup --senha YOUR_PASSWORD --vcam
+The setup creates or checks:
 
-1. Abra o OBS e vá em **Ferramentas → Configurações do Servidor WebSocket**. Marque **Ativar servidor WebSocket** (porta 4455) e copie a senha.
-2. Rode o setup. Ele cria as cenas e as fontes que faltarem e fica ouvindo o F9:
+Scene	Sources (bottom to top)
+Webcam_Normal	Camera (your webcam), Fumaca
+Modo_Ditto	Ditto_Cor, Camera, Ditto_Fundo (frozen background), Ditto_Overlay (Ditto with alpha), Fumaca
+If the wrong camera shows up, double-click Camera in OBS and pick the right device. From then on, just run python ditto_kawarimi.py --senha YOUR_PASSWORD (or set $env:OBS_WS_SENHA). For another host or port: --host 192.168.0.10 --porta 4455.
 
-```powershell
-python ditto_kawarimi.py --setup --senha SUA_SENHA --vcam
-```
+The three modes (--modo, or F10 to cycle)
+Mode	What shows behind Ditto	When to use it
+ao-vivo (default)	the real background, frozen at the moment you press F9	anywhere, with no preparation
+alpha	the live camera (Ditto overlaid with alpha)	when you want to stay visible
+solido	a solid colour (--bg-cor "#1e1e2e")	for quick tests or with the camera off
+The F8 trick (clean background): in ao-vivo mode, the frozen image still has you in it (that's why it's slightly blurred; see --desfoque). To make Ditto truly take your place, step out of frame for a second and press F8. From then on, F9 uses that background without you in it. It lasts until you close the script. Press F8 again if you move somewhere else.
 
-O setup cria ou verifica:
+5. Teams
+In OBS, click Start Virtual Camera (or use --vcam).
+In Teams, go to Settings → Devices → Camera and choose OBS Virtual Camera.
+Keep ditto_kawarimi.py running in the terminal. F9 works even while Teams has focus.
+Teams only mirrors your own preview. Other participants see the image the right way round.
 
-| Cena | Fontes (de baixo para cima) |
-|---|---|
-| `Webcam_Normal` | `Camera` (sua webcam), `Fumaca` |
-| `Modo_Ditto` | `Ditto_Cor`, `Camera`, `Ditto_Fundo` (cenário congelado), `Ditto_Overlay` (Ditto com alfa), `Fumaca` |
+Keys
+Key	Action
+F9	Kawarimi: toggles Webcam_Normal ↔ Modo_Ditto with smoke
+F8	saves the clean background (step out of frame first)
+F10	changes the mode: ao-vivo → alpha → solido
+Ctrl+C	stops the script
+You can rebind them with --tecla F7, --tecla-cenario F6 and --tecla-modo F11.
 
-Se a câmera errada aparecer, dê dois cliques em `Camera` no OBS e escolha o dispositivo.
-Nas próximas vezes basta rodar `python ditto_kawarimi.py --senha SUA_SENHA` (ou definir `$env:OBS_WS_SENHA`). Outro host ou porta: `--host 192.168.0.10 --porta 4455`.
-
-### Os três modos (`--modo`, ou **F10** para alternar)
-
-| Modo | O que aparece atrás do Ditto | Quando usar |
-|---|---|---|
-| `ao-vivo` (padrão) | o **cenário real congelado** no instante do F9 | em qualquer lugar, sem preparar nada |
-| `alpha` | a **câmera ao vivo** (Ditto sobreposto com alfa) | quando você quer continuar aparecendo |
-| `solido` | uma **cor sólida** (`--bg-cor "#1e1e2e"`) | para testar rápido ou com a câmera fechada |
-
-**Truque do F8 (cenário limpo):** no modo ao-vivo, a imagem congelada tem você nela (por isso ela é levemente desfocada, veja `--desfoque`). Para o Ditto "ocupar o seu lugar" de verdade, saia do quadro por um segundo e aperte **F8**. Daí em diante, o F9 usa esse fundo sem você. Vale até fechar o script. Aperte F8 de novo se mudar de lugar.
-
-## 5. Teams
-
-1. No OBS, clique em **Iniciar câmera virtual** (ou use `--vcam`).
-2. No Teams, vá em **Configurações → Dispositivos → Câmera** e escolha **OBS Virtual Camera**.
-3. Deixe o `ditto_kawarimi.py` rodando no terminal. O F9 funciona mesmo com o Teams em foco.
-
-> O Teams espelha só a *sua* pré-visualização. Os outros participantes veem a imagem normal.
-
-## Teclas
-
-| Tecla | Ação |
-|---|---|
-| **F9** | Kawarimi: alterna `Webcam_Normal` ↔ `Modo_Ditto` com fumaça |
-| **F8** | memoriza o cenário limpo (saia do quadro antes) |
-| **F10** | troca o modo: ao-vivo → alpha → solido |
-| **Ctrl+C** | encerra o script |
-
-As teclas podem ser trocadas com `--tecla F7`, `--tecla-cenario F6` e `--tecla-modo F11`.
-
-## Problemas comuns
-
-- **"Não consegui conectar ao OBS"**: o OBS precisa estar aberto com o WebSocket ativo. Confira porta e senha.
-- **A fumaça não aparece**: rode `--setup` de novo. A fonte `Fumaca` precisa estar no topo das duas cenas.
-- **Halo branco no Ditto**: `python preparar_ditto.py --tolerancia 60`. Se a imagem já tiver transparência: `--remover-fundo nao`.
-- **Troca antes ou depois do pico da fumaça**: ajuste com `--troca-em 0.6` (em segundos).
-- **Webcam ocupada no `--preview`**: o OBS ou o Teams estão usando a câmera. Feche-os ou use `--sem-camera`.
+Troubleshooting
+"Não consegui conectar ao OBS" (couldn't connect to OBS): OBS must be open with the WebSocket server enabled. Check the port and password.
+The smoke doesn't show up: run --setup again. The Fumaca source must be at the top of both scenes.
+White halo around Ditto: python preparar_ditto.py --tolerancia 60. If the image already has transparency: --remover-fundo nao.
+The swap happens before or after the smoke peaks: adjust it with --troca-em 0.6 (in seconds).
+Webcam busy in --preview: OBS or Teams is using the camera. Close them or use --sem-camera.
